@@ -23,10 +23,14 @@ import { Calendar } from "./ui/calendar";
 
 export const formSchema = z.object({
   location: z.string().min(2).max(50),
-  dates: z.object({
-    from: z.date(),
-    to: z.date(),
-  }),
+  dates: z
+    .object({
+      from: z.date().optional(),
+      to: z.date().optional(),
+    })
+    .refine((val) => val.from && val.to, {
+      message: "Please insert valid dates",
+    }),
   adults: z
     .string()
     .min(1, {
