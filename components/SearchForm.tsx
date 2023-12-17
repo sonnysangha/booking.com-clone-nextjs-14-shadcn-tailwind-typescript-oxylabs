@@ -23,10 +23,14 @@ import { Calendar } from "./ui/calendar";
 
 export const formSchema = z.object({
   location: z.string().min(2).max(50),
-  dates: z.object({
-    from: z.date(),
-    to: z.date(),
-  }),
+  dates: z
+    .object({
+      from: z.date().optional(),
+      to: z.date().optional(),
+    })
+    .refine((val) => val.from && val.to, {
+      message: "Please insert valid dates",
+    }),
   adults: z
     .string()
     .min(1, {
@@ -60,26 +64,27 @@ function SearchForm() {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
+    if (values.dates.from && values.dates.to) {
+      const checkin_monthday = values.dates.from.getDate().toString();
+      const checkin_month = (values.dates.from.getMonth() + 1).toString();
+      const checkin_year = values.dates.from.getFullYear().toString();
+      const checkout_monthday = values.dates.to.getDate().toString();
+      const checkout_month = (values.dates.to.getMonth() + 1).toString();
+      const checkout_year = values.dates.to.getFullYear().toString();
 
-    const checkin_monthday = values.dates.from.getDate().toString();
-    const checkin_month = (values.dates.from.getMonth() + 1).toString();
-    const checkin_year = values.dates.from.getFullYear().toString();
-    const checkout_monthday = values.dates.to.getDate().toString();
-    const checkout_month = (values.dates.to.getMonth() + 1).toString();
-    const checkout_year = values.dates.to.getFullYear().toString();
+      const checkin = `${checkin_year}-${checkin_month}-${checkin_monthday}`;
+      const checkout = `${checkout_year}-${checkout_month}-${checkout_monthday}`;
 
-    const checkin = `${checkin_year}-${checkin_month}-${checkin_monthday}`;
-    const checkout = `${checkout_year}-${checkout_month}-${checkout_monthday}`;
+      const url = new URL("https://www.booking.com/searchresults.html");
+      url.searchParams.set("ss", values.location);
+      url.searchParams.set("group_adults", values.adults);
+      url.searchParams.set("group_children", values.children);
+      url.searchParams.set("no_rooms", values.rooms);
+      url.searchParams.set("checkin", checkin);
+      url.searchParams.set("checkout", checkout);
 
-    const url = new URL("https://www.booking.com/searchresults.html");
-    url.searchParams.set("ss", values.location);
-    url.searchParams.set("group_adults", values.adults);
-    url.searchParams.set("group_children", values.children);
-    url.searchParams.set("no_rooms", values.rooms);
-    url.searchParams.set("checkin", checkin);
-    url.searchParams.set("checkout", checkout);
-
-    router.push(`/search?url=${url.href}`);
+      router.push(`/search?url=${url.href}`);
+    }
   }
 
   return (
@@ -102,7 +107,7 @@ function SearchForm() {
                 <FormMessage />
 
                 <FormControl>
-                  <Input placeholder="London, UK" {...field} />
+                 <Input placeholder="London, UK" {...field} />
                 </FormControl>
               </FormItem>
             )}
@@ -149,8 +154,11 @@ function SearchForm() {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       initialFocus
-                      mode="range"
-                      selected={field.value}
+                      mode="range" //select the beginning & the ending day
+                      selected={{
+                        from: field.value.from,
+                        to: field.value.to,
+                      }}
                       defaultMonth={field.value.from}
                       onSelect={field.onChange}
                       numberOfMonths={2}
